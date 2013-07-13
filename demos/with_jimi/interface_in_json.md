@@ -27,7 +27,7 @@ In addition, SERVER will choose a map in game.
       *   **max_score**:  a key in the info, it is the max score the user played before.
       *   **ava_score**:  a key in the info, it is the average score the user played before. 
       *   **level**:  a key in the info, it represents the users playing level.
-      *   **map**:  A index number is here, indicating which map is chosen in user's game.   
+      
       
 ##2	begin to match
 ###2.1	Request Description
@@ -64,7 +64,9 @@ This message should reply according to the request. SERVER will add the user in 
     *   **port**:  opponent's port number. 
 
     *   **level**:  opponent's level.
-
+    
+    *   **map**:  A index number is here, indicating which map is chosen by SERVER in user's game.   
+    
 ##3	step 
 ###3.1	Request Description
 ####3.1.1	Precondition and Background
