@@ -19,8 +19,8 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <time.h>
 #include <pthread.h>
-
 
 namespace mm {
 
@@ -119,6 +119,14 @@ public:
 
     void Wait() {
         pthread_cond_wait(&cond_, mutex_.GetLock());
+    }
+
+    bool WaitOrTimeout(int seconds) {
+        struct timespec abstime;
+        clock_gettime(CLOCK_REALTIME, &abstime);
+        abstime.tv_sec += seconds;
+        return ETIMEDOUT == pthread_cond_timedwait(&cond_, mutex_.GetLock(), &abstime);
+
     }
 
     void Notify() {
