@@ -33,9 +33,7 @@ class Buffer {
 
 public:
     Buffer()
-        : len_(0),
-          rest_(kLargeBufferLen),
-          cur_(data_)
+        : cur_(data_)
     {
         ::bzero(static_cast<void*>(data_), kLargeBufferLen);
     }
@@ -47,36 +45,26 @@ public:
 
     ~Buffer() {}
 
-    size_t AvailableLen() const { return rest_; }
+    size_t Len() const { return cur_ - data_; }
+    size_t AvailableLen() const { return kLargeBufferLen - Len(); }
     size_t Append(const char *data, size_t len) {
-        assert(rest_ >= len);
-
+        assert(AvailableLen() >= len);
         ::memcpy(cur_, data, len);
         cur_ += len;
-        rest_ -= len;
-        len_ += len;
-
         return len;
     }
 
-    void Clear() {
+    /*void Clear() {
         cur_ = data_;
-        len_ = 0;
-        rest_ = kLargeBufferLen;
         ::bzero(data_, kLargeBufferLen);
-    }
+    }*/
 
-    bool Empty() { return kLargeBufferLen == rest_; }
-    size_t len() const { return len_; }
+    bool Empty() { return cur_ == data_; }
     const char* cur() const { return cur_; }
-    size_t rest() const { return rest_; }
     const char* data() const { return data_; }
-
 
 private:
     char data_[kLargeBufferLen];
-    size_t len_;
-    size_t rest_;
     char* cur_;
 };
 
@@ -106,7 +94,9 @@ private:
     Thread th_;
 
     std::unique_ptr<Buffer> buffer_;
-    std::unique_ptr<Buffer> ready_buffer_;
+    std::vector<std::unique_ptr<Buffer>> buffer_vec_;
+    std::vector<std::unique_ptr<Buffer>> ready_buffer_vec_;
+
 
     std::string file_name_;
     bool running_;

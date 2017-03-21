@@ -28,7 +28,6 @@ AsyncLog::AsyncLog(const std::string& file_name)
       mutex_(),
       cond_(mutex_),
       buffer_(new Buffer),
-      ready_buffer_(new Buffer),
       file_name_(file_name),
       running_(false),
       writen_nums_(0)
@@ -55,16 +54,29 @@ void AsyncLog::Append(const std::string& msg, size_t len) {
 
 void AsyncLog::Append(const char* msg, size_t len) {
     MutexLockGuard lock(mutex_);
-
-    while (buffer_->AvailableLen() < len) {
+    while (buffer_vec_.size() > 100) {
         cond_.Wait();
     }
-    assert(buffer_->AvailableLen() >= len);
 
+    size_t index = 0;
     while (len > 0) {
-        auto n = buffer_->Append(msg, len);
-        assert(n > 0);
-        len -= n;
+        auto real_len = buffer_->AvailableLen();
+        if (real_len == 0) {
+            buffer_vec_.push_back(std::unique_ptr<Buffer>(buffer_.release()));
+            buffer_.reset(new Buffer);
+            real_len = buffer_->AvailableLen();
+        }
+        if (real_len > len) {
+            real_len = len;
+        }
+        buffer_->Append(msg + index, real_len);
+        len -= real_len;
+        index += real_len;
+    }
+
+    if (!buffer_vec_.empty()) {
+        // notify consumer immediately. avoid OS free the memory.
+        cond_.Notify();
     }
 }
 
@@ -74,24 +86,41 @@ void AsyncLog::ThreadFunc() {
     while (running_) {
         {
             MutexLockGuard lock(mutex_);
-            if (buffer_->Empty()) {
 
-                /*struct timeval tv{0, 1000*1000};
-                ::select(0, NULL, NULL, NULL, &tv);
-                continue;
-                */
+            if (buffer_vec_.empty() && !buffer_->Empty()) {
+                buffer_vec_.push_back(std::unique_ptr<Buffer>(buffer_.release()));
+                buffer_.reset(new Buffer);
+            }
+
+            if (buffer_vec_.empty()) {
                 cond_.WaitOrTimeout(1);
             }
-            buffer_.swap(ready_buffer_);
+
+            // if buffer is still empty, dont need to do next steps.
+            if (buffer_vec_.empty()) {
+                continue;
+            }
+
+            assert(!buffer_vec_.empty());
+            buffer_vec_.swap(ready_buffer_vec_);
             cond_.NotifyAll();
         }
 
-        writen_nums_ += ready_buffer_->len();
-        logfile.Write(ready_buffer_->data(), ready_buffer_->len());
+        /*std::cout << "read size: " << ready_buffer_vec_.size() << std::endl;
+        std::cout << "read size: " << buffer_vec_.size() << std::endl;
+        std::cout << "---" << std::endl;
+        */
 
-        ready_buffer_->Clear();
-        logfile.Flush();
+        auto c_iter = ready_buffer_vec_.cbegin();
+        for (; c_iter != ready_buffer_vec_.cend(); ++c_iter) {
+            writen_nums_ += (*c_iter)->Len();
+            logfile.Write((*c_iter)->data(), (*c_iter)->Len());
+        }
+
+        ready_buffer_vec_.clear();
+        ready_buffer_vec_.shrink_to_fit();
     }
+
     logfile.Flush();
 }
 
