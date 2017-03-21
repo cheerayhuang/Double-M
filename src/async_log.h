@@ -91,6 +91,7 @@ private:
 
     MutexLock mutex_;
     MutexCond cond_;
+    MutexCond cond_buffer_too_large_;
     Thread th_;
 
     std::unique_ptr<Buffer> buffer_;

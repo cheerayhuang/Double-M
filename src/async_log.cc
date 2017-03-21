@@ -27,6 +27,7 @@ AsyncLog::AsyncLog(const std::string& file_name)
     : th_(std::bind(&AsyncLog::ThreadFunc, this), "AsyncLogging"),
       mutex_(),
       cond_(mutex_),
+      cond_buffer_too_large_(mutex_),
       buffer_(new Buffer),
       file_name_(file_name),
       running_(false),
@@ -55,7 +56,7 @@ void AsyncLog::Append(const std::string& msg, size_t len) {
 void AsyncLog::Append(const char* msg, size_t len) {
     MutexLockGuard lock(mutex_);
     while (buffer_vec_.size() > 100) {
-        cond_.Wait();
+        cond_buffer_too_large_.Wait();
     }
 
     size_t index = 0;
@@ -103,7 +104,7 @@ void AsyncLog::ThreadFunc() {
 
             assert(!buffer_vec_.empty());
             buffer_vec_.swap(ready_buffer_vec_);
-            cond_.NotifyAll();
+            cond_buffer_too_large_.NotifyAll();
         }
 
         /*std::cout << "read size: " << ready_buffer_vec_.size() << std::endl;
