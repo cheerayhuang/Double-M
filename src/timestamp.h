@@ -15,10 +15,13 @@
 
 #include <utility>
 
+#ifndef __DOUBLE_M_TIMESTAMP_H__
+#define __DOUBLE_M_TIMESTAMP_H__
+
 namespace mm {
 
 class Timestamp {
-private:
+public:
     enum { kMicrosecondsPerSecond = 1000 * 1000 };
 
 public:
@@ -68,9 +71,13 @@ public:
         return diff_secs;
     }
 
+    int64_t epoch_us() const { return epoch_us_; }
+
 
 private:
     int64_t epoch_us_;
 };
 }
+
+#endif
 

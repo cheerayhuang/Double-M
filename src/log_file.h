@@ -19,6 +19,9 @@
 namespace mm {
 // since every log message is not very large, using glibc FILE obj is more efficient.
 class LogFile {
+    enum {
+        kIOBuffer = 64 * 1024 // 64k
+    };
 
 public:
     explicit LogFile(const std::string &file_name);
@@ -35,7 +38,7 @@ public:
 
 private:
     FILE* f_;
-    char buffer_[64*1024]; // 64k
+    char buffer_[kIOBuffer]; // 64k
 };
 }
 

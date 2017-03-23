@@ -24,19 +24,22 @@
 
 #include <string>
 
-mm::AsyncLog g_async_log("mm.log");
+//mm::AsyncLog g_async_log("mm.log");
 
-const size_t kMsgLen = 2000;
+const size_t kMsgLen = 128;
 std::string str(kMsgLen, 'h');
 
-const int kLoop = 1000 * 1000;
+const int kLoop = 2000000;
+
+void WriteStr(const std::string& str) {
+    mm::g_async_log.Append(str.c_str(), str.length());
+}
 
 void func() {
 
-
-    //g_async_log.Append(mm::current_thread::GetTidStr(), 6);
+    using namespace mm;
     for (auto i = 0; i < kLoop; ++i)
-        g_async_log.Append(str.c_str(), str.length());
+        LOG_TRACE<<str;
 }
 
 int main() {
@@ -48,12 +51,10 @@ int main() {
         setrlimit(RLIMIT_AS, &rl);
     }
 
-
+    str += "\n";
     using namespace mm;
-    /*str.insert(0, current_thread::Name());
-    str.insert(0, current_thread::GetTidStr());
-    */
-    str.append(1, '\n');
+    g_async_log.SetOutFile("mm.log");
+    g_async_log.SetLogLevel(LogLevel::TRACE);
 
     auto t1 = mm::Timestamp::Now();
     g_async_log.StartLogging();
@@ -64,15 +65,12 @@ int main() {
     th1.Start();
     th2.Start();
 
-    //func();
-
-    auto total_bytes = 2 * (kMsgLen * kLoop + kLoop);
+    auto total_bytes = 2 * ((kMsgLen) * kLoop);
     auto total_msgs = 2 * kLoop;
     while (g_async_log.writen_nums() < total_bytes) {
         struct timeval tv{0, 10};
         ::select(0, NULL, NULL, NULL, &tv);
     }
-    //g_async_log.StopLogging();
     auto t2 = mm::Timestamp::Now();
 
     printf("total bytes: %lu, total msgs: %d, total time: %lf\n", total_bytes, total_msgs, t2.DiffSeconds(t1));

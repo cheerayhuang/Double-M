@@ -18,8 +18,13 @@
 using namespace mm;
 
 LogFile::LogFile(const std::string &file_name)
-    : f_(::fopen(file_name.c_str(), "a"))
 {
+    if (file_name == "stdout") {
+        f_ = stdout;
+    }
+    else {
+        f_ = ::fopen(file_name.c_str(), "a");
+    }
     assert(f_);
     ::setbuffer(f_, buffer_, sizeof buffer_);
 }
