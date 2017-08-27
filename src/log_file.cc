@@ -26,11 +26,13 @@ LogFile::LogFile(const std::string &file_name)
         f_ = ::fopen(file_name.c_str(), "a");
     }
     assert(f_);
+    // setbuffer(3): change a fd's buffer.
     ::setbuffer(f_, buffer_, sizeof buffer_);
 }
 
 size_t LogFile::Write(const char* data, size_t len) const {
 
+    // fwrite_unlocked(3): write to fd threadunsafe, but more fast.
     return ::fwrite_unlocked(data, 1, len, f_);
 }
 

@@ -30,9 +30,11 @@ namespace current_thread {
 
     void CacheTid() {
         if (cached_tid == 0) {
+            // syscall(2): get thread id.
             cached_tid = static_cast<pid_t>(::syscall(SYS_gettid));
             int n = snprintf(tid_str, sizeof tid_str, "%5d ", cached_tid);
             assert(n == 6);
+            // avoid warning.(sic passim)
             (void)n;
         }
     }
@@ -90,6 +92,8 @@ int Thread::Join() {
     return pthread_join(pthread_id_, NULL);
 }
 
+// since pthread func only has one arg,
+// the ThreadEntry() can pass "this".
 void* Thread::ThreadEntry(void *obj) {
     auto p = static_cast<Thread*>(obj);
     p->RunThreadFunc();
